@@ -1,1 +1,90 @@
-jijij
+
+
+var fs = require('fs');  
+var async = require('async');
+
+var myFile = '/tmp/test';
+
+async.waterfall([  
+    function(callback) {
+        fs.readFile(myFile, 'utf8', callback);
+    },
+    function(txt, callback) {
+        txt = txt + '\nAppended something!';
+        fs.writeFile(myFile, txt, callback);
+    }
+], function (err, result) {
+    if(err) return console.log(err);
+    console.log('Appended text!');
+});
+
+//===================
+
+var Promise = require('bluebird');  
+var fs = require('fs');  
+Promise.promisifyAll(fs);
+
+var myFile = '/tmp/test';  
+fs.readFileAsync(myFile, 'utf8').then(function(txt) {  
+    txt = txt + '\nAppended something!';
+    fs.writeFile(myFile, txt);
+}).then(function() {
+    console.log('Appended text!');
+}).catch(function(err) {
+    console.log(err);
+});
+
+//==============
+
+
+var express = require('express');  
+var Promise = require("bluebird");  
+var fs = Promise.promisifyAll(require('fs'));  
+var app = express();
+
+app.post('/process-file', function(req, res) {  
+  var inputFile = 'input.txt';
+  var outputFile = 'output.txt';
+
+  fs.readFileAsync(inputFile)
+    .then(Promise.promisify(process1))
+    .then(Promise.promisify(process2))
+    .then(Promise.promisify(process3))
+    .then(fs.writeFileAsync.bind(fs, outputFile))
+    .then(function(data) {
+      res.status(200).send('processed successfully using bluebird promises');
+    })
+    .catch(function(err) {
+      res.status(500).send(err);
+    });
+});
+
+
+===============================
+
+var express = require('express');  
+var async = require('async');  
+var fs = require('fs');  
+var app = express();
+
+app.post('/process-file', function(req, res) {  
+  var inputFile = 'input.txt';
+  var outputFile = 'output.txt';
+
+  var done = function(err, result) {
+    if (err) return res.status(500).send(err);
+    res.status(200).send('processed successfully with async');
+  };
+
+  async.waterfall([
+    fs.readFile.bind(fs, inputFile),
+    process1,
+    process2,
+    process3,
+    fs.writeFile.bind(fs, outputFile)
+  ], done);
+});
+
+==============
+
+
